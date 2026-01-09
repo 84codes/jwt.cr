@@ -10,4 +10,3 @@ license: Apache-2.0
 
 description: |
   JWT (JSON Web Token) library with RS256 signature verification and JWKS support.
-  Extracted from LavinMQ's OAuth implementation.
