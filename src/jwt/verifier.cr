@@ -31,10 +31,10 @@ module JWT
     end
 
     private def prevalidate_token(token : String)
-      raise DecodeError.new("Invalid JWT format") unless token.starts_with?("ey")
+      raise PasswordFormatError.new("Invalid JWT format") unless token.starts_with?("ey")
 
       parts = token.split('.', 4)
-      raise DecodeError.new("Invalid JWT format") unless parts.size == 3
+      raise PasswordFormatError.new("Invalid JWT format") unless parts.size == 3
 
       header = RS256Parser.decode_header(token)
       alg = header["alg"]?.try(&.as_s)
