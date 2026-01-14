@@ -22,18 +22,21 @@ module JWT
 
       loop do
         begin
+          # TODO: Let shard user handle this loop themselves?
           result = fetch_jwks
           @public_keys.update(result.keys, result.ttl)
           retry_delay = 5.seconds
 
           wait_time = calculate_wait_time
           select
-          when @refresh_trigger.receive
+          when @refresh_trigger.receive?
+            break if @refresh_trigger.closed?
           when timeout(wait_time)
           end
         rescue ex
           select
-          when @refresh_trigger.receive
+          when @refresh_trigger.receive?
+            break if @refresh_trigger.closed?
             retry_delay = 5.seconds
           when timeout(retry_delay)
           end
@@ -41,6 +44,10 @@ module JWT
           retry_delay = {retry_delay * 2, max_retry_delay}.min
         end
       end
+    end
+
+    def stop
+      @refresh_trigger.close
     end
 
     def trigger_refresh
