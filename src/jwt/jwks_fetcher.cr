@@ -3,12 +3,14 @@ require "json"
 require "./lib_crypto"
 require "./public_keys"
 require "./token"
+require "log"
 
 module JWT
   record JWKSResult, keys : Hash(String, String), ttl : Time::Span
 
   class JWKSFetcher
     getter public_keys : PublicKeys
+    Log = ::Log.for "JWKSFetcher"
 
     def initialize(@issuer_url : String, @default_cache_ttl : Time::Span = 1.hour)
       @issuer_url = @issuer_url.chomp("/")
@@ -25,6 +27,7 @@ module JWT
           # TODO: Let shard user handle this loop themselves?
           result = fetch_jwks
           @public_keys.update(result.keys, result.ttl)
+          Log.info { "Refreshed JWKS with #{result.keys.size} key(s), TTL=#{result.ttl}" }
           retry_delay = 5.seconds
 
           wait_time = calculate_wait_time
@@ -34,6 +37,8 @@ module JWT
           when timeout(wait_time)
           end
         rescue ex
+          Log.error(exception: ex) { "Failed to fetch JWKS, retrying in #{retry_delay}: #{ex.message}" }
+
           select
           when @refresh_trigger.receive?
             break if @refresh_trigger.closed?
